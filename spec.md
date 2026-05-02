@@ -1,8 +1,6 @@
-**Nova**
+**UnknownLang**
 
 Language Specification
-
-_Version 0.1 - Draft_
 
 _Easy to learn. Powerful when needed._
 

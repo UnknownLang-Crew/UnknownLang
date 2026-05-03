@@ -2,13 +2,13 @@
 
 Language Specification
 
-_Easy to learn. Powerful when needed._
+_Cool Lang Maype_
 
 Inspired by **C# • Rust • Swift • Python • GDScript • Lua**
 
 # **1\. Philosophy**
 
-Nova is a statically typed, compiled language designed to be easy to learn and powerful when needed.
+UnknownLang is a statically typed, compiled language designed to be easy to learn and powerful when needed.
 
 ### **Core principles**
 

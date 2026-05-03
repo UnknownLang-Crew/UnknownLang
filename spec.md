@@ -15,7 +15,7 @@ UnknownLang is a statically typed, compiled language designed to be easy to lear
 - Private by default - visibility is opt-in with pub
 - Immutable by default - mutation is opt-in with mut
 - Explicit over implicit - errors, types, and side effects are visible
-- One CLI - nova run, nova test, nova fmt, nova add - zero config to start
+- One CLI - run, test, fmt, add - zero config to start
 - Grows with you - beginners use simple forms, experts unlock generics, unsafe, and comptime
 
 # **2\. Variables**
@@ -946,17 +946,17 @@ Overloadable: + − \* / % == != &lt; &gt; &lt;= &gt;= \[\] () unary- str()
 
 | my-app/                |
 | ---------------------- |
-| ├── nova.toml          |
+| ├── project.toml       |
 | ├── src/               |
-| │ ├── main.nova        |
+| │ ├── main.unk        |
 | │ ├── models/          |
-| │ │ ├── user.nova      |
-| │ │ └── post.nova      |
+| │ │ ├── user.unk      |
+| │ │ └── post.unk      |
 | │ └── utils/           |
-| │ └── string.nova      |
+| │ └── string.unk      |
 | ├── tests/             |
-| │ ├── user_test.nova   |
-| │ └── string_test.nova |
+| │ ├── user_test.unk   |
+| │ └── string_test.unk |
 | └── docs/              |
 
 # **30\. Quick Reference Card**

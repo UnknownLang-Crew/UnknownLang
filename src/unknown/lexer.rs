@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use crate::unknown::ast::Span;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
     pub span: Span,
@@ -13,10 +13,13 @@ impl Token {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     Integer(i64),
+    Float(f64),
     Identifier(String),
+
+    Let,
 
     Plus,
     Minus,
@@ -34,6 +37,7 @@ pub enum TokenKind {
     Bang,
     Tilde,
 
+    Equal,
     EqualEqual,
     BangEqual,
 
@@ -175,8 +179,7 @@ impl<'a> Lexer<'a> {
                     self.advance();
                     TokenKind::EqualEqual
                 } else {
-                    // Phase 0: no assignment yet → treat as error-ish fallback
-                    TokenKind::EqualEqual
+                    TokenKind::Equal
                 }
             }
 
@@ -231,13 +234,24 @@ impl<'a> Lexer<'a> {
     fn lex_number(&mut self) -> Token {
         let start = self.position;
 
-        let mut value = 0i64;
-
         while matches!(self.peek(), Some(c) if c.is_ascii_digit()) {
-            let digit = self.advance().unwrap().to_digit(10).unwrap() as i64;
-            value = value * 10 + digit;
+            self.advance();
         }
 
+        if self.peek() == Some('.') && matches!(self.peek_next(), Some(c) if c.is_ascii_digit()) {
+            self.advance();
+
+            while matches!(self.peek(), Some(c) if c.is_ascii_digit()) {
+                self.advance();
+            }
+
+            let text: String = self.chars[start..self.position].iter().collect();
+            let value = text.parse::<f64>().expect("lexer built a valid float");
+            return Token::new(TokenKind::Float(value), Span::new(start, self.position));
+        }
+
+        let text: String = self.chars[start..self.position].iter().collect();
+        let value = text.parse::<i64>().expect("lexer built a valid integer");
         Token::new(TokenKind::Integer(value), Span::new(start, self.position))
     }
 
@@ -250,6 +264,11 @@ impl<'a> Lexer<'a> {
 
         let text: String = self.chars[start..self.position].iter().collect();
 
-        Token::new(TokenKind::Identifier(text), Span::new(start, self.position))
+        let kind = match text.as_str() {
+            "let" => TokenKind::Let,
+            _ => TokenKind::Identifier(text),
+        };
+
+        Token::new(kind, Span::new(start, self.position))
     }
 }

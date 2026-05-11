@@ -4,7 +4,7 @@
 // Program
 //
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Program {
     pub items: Vec<Expr>,
 }
@@ -23,7 +23,7 @@ impl Program {
 // Expressions
 //
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
     pub kind: ExprKind,
     pub span: Span,
@@ -33,6 +33,13 @@ impl Expr {
     pub fn integer(value: i64, span: Span) -> Self {
         Self {
             kind: ExprKind::Integer(value),
+            span,
+        }
+    }
+
+    pub fn float(value: f64, span: Span) -> Self {
+        Self {
+            kind: ExprKind::Float(value),
             span,
         }
     }
@@ -51,11 +58,7 @@ impl Expr {
         }
     }
 
-    pub fn unary(
-        operator: UnaryOp,
-        operand: Expr,
-        span: Span,
-    ) -> Self {
+    pub fn unary(operator: UnaryOp, operand: Expr, span: Span) -> Self {
         Self {
             kind: ExprKind::Unary {
                 operator,
@@ -65,12 +68,7 @@ impl Expr {
         }
     }
 
-    pub fn binary(
-        left: Expr,
-        operator: BinaryOp,
-        right: Expr,
-        span: Span,
-    ) -> Self {
+    pub fn binary(left: Expr, operator: BinaryOp, right: Expr, span: Span) -> Self {
         Self {
             kind: ExprKind::Binary {
                 left: Box::new(left),
@@ -82,12 +80,23 @@ impl Expr {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ExprKind {
     Integer(i64),
+    Float(f64),
     Identifier(String),
 
     Grouping(Box<Expr>),
+
+    Let {
+        name: String,
+        value: Box<Expr>,
+    },
+
+    Assign {
+        name: String,
+        value: Box<Expr>,
+    },
 
     Unary {
         operator: UnaryOp,
@@ -107,9 +116,9 @@ pub enum ExprKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOp {
-    Negate,      // -
-    LogicalNot,  // !
-    BitwiseNot,  // ~
+    Negate,     // -
+    LogicalNot, // !
+    BitwiseNot, // ~
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -117,17 +126,15 @@ pub enum BinaryOp {
     //
     // Arithmetic
     //
-
-    Plus,       // +
-    Subtract,   // -
-    Multiply,   // *
-    Divide,     // /
-    Modulo,     // %
+    Plus,     // +
+    Subtract, // -
+    Multiply, // *
+    Divide,   // /
+    Modulo,   // %
 
     //
     // Bitwise
     //
-
     BitwiseAnd, // &
     BitwiseOr,  // |
     BitwiseXor, // ^
@@ -138,27 +145,24 @@ pub enum BinaryOp {
     //
     // Comparison
     //
+    Equal,    // ==
+    NotEqual, // !=
 
-    Equal,         // ==
-    NotEqual,      // !=
+    Less,      // <
+    LessEqual, // <=
 
-    Less,          // <
-    LessEqual,     // <=
-
-    Greater,       // >
-    GreaterEqual,  // >=
+    Greater,      // >
+    GreaterEqual, // >=
 
     //
     // Logical
     //
-
     LogicalAnd, // &&
     LogicalOr,  // ||
 
     //
     // Range
     //
-
     RangeExclusive, // ..
     RangeInclusive, // ..=
 }
@@ -186,8 +190,7 @@ impl BinaryOp {
             Self::LogicalAnd => 10,
             Self::LogicalOr => 5,
 
-            Self::RangeExclusive
-            | Self::RangeInclusive => 1,
+            Self::RangeExclusive | Self::RangeInclusive => 1,
         }
     }
 }

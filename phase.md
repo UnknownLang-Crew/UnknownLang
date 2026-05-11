@@ -1,6 +1,6 @@
 # UnknownLang Compiler Phases
 
-## [ Work On ] Phase 0 — Bootstrap
+## [ Done ] Phase 0 — Bootstrap
 
 ### Goal
 
@@ -46,7 +46,7 @@ Span { start, end }
 
 ---
 
-## [ ] Phase 1A — Minimal Interpreter
+## [ On Work ] Phase 1A — Minimal Interpreter
 
 ### Goal
 

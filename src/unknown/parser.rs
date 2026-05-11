@@ -14,30 +14,18 @@ impl Parser {
         }
     }
 
-
     fn peek(&self) -> &Token {
-    &self.tokens[self.position]
-}
+        &self.tokens[self.position]
+    }
 
     fn advance(&mut self) -> Token {
-    let tok = self.tokens[self.position].clone();
-    self.position += 1;
-    tok
-}
+        let tok = self.tokens[self.position].clone();
+        self.position += 1;
+        tok
+    }
 
     fn is_at_end(&self) -> bool {
         matches!(self.peek().kind, TokenKind::EOF)
-    }
-
-    fn match_kind(&mut self, kind: &TokenKind) -> bool {
-        if std::mem::discriminant(&self.peek().kind)
-            == std::mem::discriminant(kind)
-        {
-            self.advance();
-            true
-        } else {
-            false
-        }
     }
 
     // -------------------------
@@ -85,39 +73,39 @@ impl Parser {
         let token = self.advance().clone();
 
         match token.kind {
-            TokenKind::Integer(value) => {
-                Expr::integer(value, token.span)
-            }
+            TokenKind::Integer(value) => Expr::integer(value, token.span),
+            TokenKind::Float(value) => Expr::float(value, token.span),
 
-            TokenKind::Identifier(name) => {
-                Expr::identifier(name, token.span)
+            TokenKind::Identifier(name) => Expr::identifier(name, token.span),
+
+            TokenKind::Let => {
+                let name = self.expect_identifier();
+                self.expect(TokenKind::Equal);
+                let value = self.parse_expression(0);
+                let span = Span::merge(token.span, value.span);
+
+                Expr {
+                    kind: ExprKind::Let {
+                        name,
+                        value: Box::new(value),
+                    },
+                    span,
+                }
             }
 
             TokenKind::Minus => {
                 let rhs = self.parse_expression(100);
-                Expr::unary(
-                    crate::unknown::ast::UnaryOp::Negate,
-                    rhs,
-                    token.span,
-                )
+                Expr::unary(crate::unknown::ast::UnaryOp::Negate, rhs, token.span)
             }
 
             TokenKind::Bang => {
                 let rhs = self.parse_expression(100);
-                Expr::unary(
-                    crate::unknown::ast::UnaryOp::LogicalNot,
-                    rhs,
-                    token.span,
-                )
+                Expr::unary(crate::unknown::ast::UnaryOp::LogicalNot, rhs, token.span)
             }
 
             TokenKind::Tilde => {
                 let rhs = self.parse_expression(100);
-                Expr::unary(
-                    crate::unknown::ast::UnaryOp::BitwiseNot,
-                    rhs,
-                    token.span,
-                )
+                Expr::unary(crate::unknown::ast::UnaryOp::BitwiseNot, rhs, token.span)
             }
 
             TokenKind::LeftParen => {
@@ -136,6 +124,22 @@ impl Parser {
 
     fn parse_infix(&mut self, left: Expr, prec: u8) -> Expr {
         let token = self.advance().clone();
+
+        if matches!(token.kind, TokenKind::Equal) {
+            let right = self.parse_expression(prec);
+            let span = Span::merge(left.span, right.span);
+
+            return match left.kind {
+                ExprKind::Identifier(name) => Expr {
+                    kind: ExprKind::Assign {
+                        name,
+                        value: Box::new(right),
+                    },
+                    span,
+                },
+                _ => panic!("Invalid assignment target"),
+            };
+        }
 
         let right = self.parse_expression(prec + 1);
 
@@ -171,7 +175,12 @@ impl Parser {
             _ => panic!("Unexpected infix operator: {:?}", token.kind),
         };
 
-        Expr::binary(left.clone(), op.clone(), right.clone(), Span::merge(left.span, token.span))
+        Expr::binary(
+            left.clone(),
+            op,
+            right.clone(),
+            Span::merge(left.span, right.span),
+        )
     }
 
     // -------------------------
@@ -180,15 +189,13 @@ impl Parser {
 
     fn infix_precedence(&self) -> Option<u8> {
         match self.peek().kind {
-            TokenKind::Star
-            | TokenKind::Slash
-            | TokenKind::Percent => Some(80),
+            TokenKind::Equal => Some(0),
 
-            TokenKind::Plus
-            | TokenKind::Minus => Some(70),
+            TokenKind::Star | TokenKind::Slash | TokenKind::Percent => Some(80),
 
-            TokenKind::LeftShift
-            | TokenKind::RightShift => Some(60),
+            TokenKind::Plus | TokenKind::Minus => Some(70),
+
+            TokenKind::LeftShift | TokenKind::RightShift => Some(60),
 
             TokenKind::Ampersand => Some(50),
 
@@ -207,8 +214,7 @@ impl Parser {
 
             TokenKind::OrOr => Some(5),
 
-            TokenKind::DotDot
-            | TokenKind::DotDotEqual => Some(1),
+            TokenKind::DotDot | TokenKind::DotDotEqual => Some(1),
 
             _ => None,
         }
@@ -220,10 +226,16 @@ impl Parser {
 
     fn expect(&mut self, expected: TokenKind) {
         let tok = self.advance();
-        if std::mem::discriminant(&tok.kind)
-            != std::mem::discriminant(&expected)
-        {
+        if std::mem::discriminant(&tok.kind) != std::mem::discriminant(&expected) {
             panic!("Expected {:?}, got {:?}", expected, tok.kind);
+        }
+    }
+
+    fn expect_identifier(&mut self) -> String {
+        let tok = self.advance();
+        match tok.kind {
+            TokenKind::Identifier(name) => name,
+            _ => panic!("Expected identifier, got {:?}", tok.kind),
         }
     }
 }

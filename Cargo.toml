@@ -10,3 +10,4 @@ derive = []
 
 [dependencies]
 clap = "4.6.1"
+rusty_repl = "0.3.0"

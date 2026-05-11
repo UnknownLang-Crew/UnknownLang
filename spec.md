@@ -1,17 +1,18 @@
 # UnknownLang Spec
 
 Inspired by Haxe, Rust, Swift, Python, Lua, and C#.
+Build on Rust
 
 UnknownLang is a statically typed compiled language focused on:
 
-* simplicity
-* safety
-* readability
-* explicit behavior
+- simplicity
+- safety
+- readability
+- explicit behavior
 
 ---
 
-# Variables
+## Variables
 
 ```unk id="vars001"
 let name = "Nova"         // immutable
@@ -28,7 +29,7 @@ mut items: Array<String> = []
 
 ---
 
-# Primitive Types
+## Primitive Types
 
 ```unk id="types001"
 Int       // platform-width signed integer (32-bit on 32-bit targets, 64-bit on 64-bit targets)
@@ -67,7 +68,104 @@ Float64
 
 ---
 
-# Nullable Types
+## Operators
+
+### Arithmetic
+
+```unk id="op001"
+let x = a + b    // addition
+let x = a - b    // subtraction
+let x = -a       // negation
+let x = a * b    // multiplication
+let x = a / b    // division (integer division truncates toward zero)
+let x = a % b    // remainder (sign matches the dividend)
+```
+
+Arithmetic on integers **panics on overflow** by default. For intentional overflow, use the explicit methods:
+
+```unk id="op002"
+let x = Int8.MAX.wrappingAdd(1)            // -128  (wraps)
+let x = Int8.MAX.saturatingAdd(10)         // 127   (clamps)
+let x: Nullable<Int8> = 100i8.checkedAdd(50)  // null on overflow
+```
+
+For exponentiation, use the method form: `n.pow(3)`, `Math.pow(a, b)`.
+
+---
+
+### Bitwise
+
+Bitwise operators work on integer types only.
+
+```unk id="op003"
+let x = a & b    // AND
+let x = a | b    // OR
+let x = a ^ b    // XOR  (not exponentiation)
+let x = ~a       // NOT  (unary, flips all bits)
+let x = a << n   // left shift
+let x = a >> n   // right shift
+```
+
+Shift behavior:
+
+- The shift amount must satisfy `0 <= n < bitWidth`. A `comptime` violation is a compile error; a runtime violation is a panic.
+- `>>` on a **signed** integer is an **arithmetic** shift (sign-extending).
+- `>>` on an **unsigned** integer is a **logical** shift (zero-filling).
+
+```unk id="op004"
+let a: UInt8 = 0b10001000 >> 3    // 0b00010001 (17) — logical
+let b: Int8  = -8 >> 1            // -4              — arithmetic
+let c: UInt8 = 0b1100 ^ 0b1010   // 0b0110 (6)
+```
+
+---
+
+### Comparison
+
+```unk id="op005"
+==   !=   <   >   <=   >=
+```
+
+---
+
+### Logical
+
+```unk id="op006"
+&&   ||   !
+```
+
+Both `&&` and `||` short-circuit.
+
+---
+
+### Range
+
+```unk id="op007"
+0..10     // exclusive: 0–9
+0..=10    // inclusive: 0–10
+```
+
+---
+
+### Operator Precedence (high → low)
+
+| Level       | Operators                   |
+| ----------- | --------------------------- |
+| 1 (highest) | `!` `~` unary `-`           |
+| 2           | `*` `/` `%`                 |
+| 3           | `+` `-`                     |
+| 4           | `<<` `>>`                   |
+| 5           | `&`                         |
+| 6           | `^`                         |
+| 7           | `\|`                        |
+| 8           | `==` `!=` `<` `>` `<=` `>=` |
+| 9           | `&&`                        |
+| 10          | `\|\|`                      |
+| 11 (lowest) | `??` `? :`                  |
+
+---
+
+## Nullable Types
 
 Nullable values use `Nullable<T>`.
 
@@ -91,7 +189,7 @@ let display = name ?? "Unknown"
 
 ---
 
-# Functions
+## Functions
 
 ```unk id="func001"
 func greet(name: String) -> String {
@@ -125,7 +223,7 @@ let add = (a: Int, b: Int) => a + b
 
 ---
 
-# Collections
+## Collections
 
 ```unk id="col001"
 let nums = [1, 2, 3]
@@ -142,9 +240,9 @@ Set<String>
 
 ---
 
-# Control Flow
+## Control Flow
 
-## If
+### If
 
 ```unk id="flow001"
 if (score > 50) {
@@ -162,7 +260,7 @@ let label = if (score > 50) "Pass" else "Fail"
 
 ---
 
-## Loops
+### Loops
 
 Range `0..10` is exclusive of the upper bound (iterates 0–9).
 
@@ -180,7 +278,7 @@ while (running) {
 
 ---
 
-# Match
+## Match
 
 ```unk id="match001"
 match (value) {
@@ -207,7 +305,7 @@ let text = match (status) {
 
 ---
 
-# Classes
+## Classes
 
 ```unk id="class001"
 pub class Player {
@@ -236,7 +334,7 @@ pub class Mage extends Player {
 
 ---
 
-# Interfaces
+## Interfaces
 
 ```unk id="iface001"
 pub interface Drawable {
@@ -256,7 +354,7 @@ pub class Circle implements Drawable {
 
 ---
 
-# Enums
+## Enums
 
 ```unk id="enum001"
 pub enum Direction {
@@ -278,7 +376,7 @@ pub enum Shape {
 
 ---
 
-# Generics
+## Generics
 
 ```unk id="gen001"
 pub class Stack<T> {
@@ -300,7 +398,7 @@ func max<T>(a: T, b: T) -> T {
 
 ---
 
-# Error Handling
+## Error Handling
 
 Inline fallback:
 
@@ -336,7 +434,7 @@ try {
 
 ---
 
-# Async
+## Async
 
 ```unk id="async001"
 async func fetchUser(id: Int) -> User {
@@ -355,7 +453,7 @@ let [u1, u2] = await all(a, b)
 
 ---
 
-# Functional Features
+## Functional Features
 
 ```unk id="fp001"
 nums
@@ -365,7 +463,7 @@ nums
 
 ---
 
-# Extensions
+## Extensions
 
 ```unk id="ext001"
 pub class StringExtensions on String {
@@ -385,7 +483,7 @@ print("hello".shout())
 
 ---
 
-# Defer
+## Defer
 
 ```unk id="defer001"
 func load() {
@@ -399,7 +497,7 @@ func load() {
 
 ---
 
-# Imports
+## Imports
 
 ```unk id="imp001"
 import Math
@@ -417,7 +515,7 @@ import Math as NeverGonnaGiveYouUp
 
 ---
 
-# Compile-Time
+## Compile-Time
 
 ```unk id="comp001"
 comptime let PLATFORM = os.name() // fixed value after build
@@ -433,7 +531,21 @@ comptime if (PLATFORM == "windows") {
 
 ---
 
-# Unsafe
+## Compiler Bootstrap AST
+
+Phase 0 of the compiler models only the syntax needed for the first parser and AST printer:
+
+- integer expressions
+- identifier expressions
+- binary expressions
+
+The bootstrap AST keeps source spans on every expression so parser errors and tree dumps can point back to source text.
+
+Later phases extend this tree with declarations, types, functions, control flow, classes, enums, generics, async, unsafe, and FFI.
+
+---
+
+## Unsafe
 
 ```unk id="unsafe001"
 unsafe {
@@ -443,11 +555,11 @@ unsafe {
 }
 ```
 
-## Overview
+### Overview
 
 `unsafe` is an explicit escape hatch. The compiler cannot verify safety inside an `unsafe` block, so the programmer takes responsibility for correctness. The type system, scoping rules, and visibility modifiers remain fully enforced — only five specific guarantees are relaxed.
 
-## What `unsafe` unlocks
+### What `unsafe` unlocks
 
 Exactly five capabilities:
 
@@ -459,14 +571,14 @@ Exactly five capabilities:
 
 Everything else is enforced as normal inside `unsafe` blocks.
 
-## Raw pointer types
+### Raw pointer types
 
 Two pointer types, constructable only inside `unsafe`:
 
 ```unk id="unsafe002"
-RawPtr<T>                    // read/write pointer
-Nullable<RawPtr<T>> // nullable read/write pointer
-ConstPtr<T>                // read-only pointer
+RawPtr<T>               // read/write pointer
+Nullable<RawPtr<T>>     // nullable read/write pointer
+ConstPtr<T>             // read-only pointer
 ```
 
 Pointers are never automatically dereferenced. All access is through explicit method calls:
@@ -489,7 +601,7 @@ unsafe {
 
 `p.read(i)` and `p.write(i, v)` are the only access points. There is no dereference syntax.
 
-## Unsafe functions
+### Unsafe functions
 
 Functions that require an `unsafe` block at the call site are declared with `unsafe func`:
 
@@ -520,7 +632,7 @@ func reinterpretBits(n: Int32) -> Float32 {
 }
 ```
 
-## Unsafe interfaces
+### Unsafe interfaces
 
 An interface marked `unsafe interface` signals that implementors must uphold invariants the compiler cannot verify — typically memory layout contracts or aliasing rules:
 
@@ -542,7 +654,7 @@ pub unsafe impl SystemAllocator implements Allocator {
 
 Calling methods on an `Allocator` value must be done inside `unsafe`.
 
-## Static mutable globals
+### Static mutable globals
 
 `static mut` globals require an `unsafe` block for both reads and writes, because concurrent access is inherently racy:
 
@@ -558,7 +670,7 @@ func register() {
 let n = INSTANCE_COUNT           // compile error
 ```
 
-## FFI
+### FFI
 
 External C functions are declared with `extern "C"` and implicitly `unsafe func`. The declaration block is safe; the call site is not:
 
@@ -576,7 +688,7 @@ func copyBytes(dst: RawPtr<UInt8>, src: ConstPtr<UInt8>, n: Int) {
 }
 ```
 
-## `unsafe` as an expression
+### `unsafe` as an expression
 
 `unsafe` blocks are expressions and can return a value:
 
@@ -584,7 +696,7 @@ func copyBytes(dst: RawPtr<UInt8>, src: ConstPtr<UInt8>, n: Int) {
 let bits: UInt32 = unsafe { transmute<Float32, UInt32>(3.14) }
 ```
 
-## What `unsafe` does not relax
+### What `unsafe` does not relax
 
 - The type system — all types are still checked
 - `Nullable<T>` — unwrapping still requires `??` or `if let`
@@ -594,7 +706,7 @@ let bits: UInt32 = unsafe { transmute<Float32, UInt32>(3.14) }
 
 ---
 
-# FixedArray
+## FixedArray
 
 `FixedArray<A, T>` is a fixed-size array whose length `A` must be known at compile time. Like `Array<T>`, it is a reference type — assigning or passing a `FixedArray` shares the same underlying buffer.
 
@@ -611,7 +723,7 @@ let data: FixedArray<N * 2, Int> = [0; 16]   // filled with 16 zeros
 
 ---
 
-## Index Access
+### Index Access
 
 ```unk id="farr003"
 let first = buf[0]
@@ -622,7 +734,7 @@ Out-of-bounds access is a compile error when the index is a `comptime` value, an
 
 ---
 
-## Iteration
+### Iteration
 
 ```unk id="farr004"
 for (val in buf) {
@@ -632,7 +744,7 @@ for (val in buf) {
 
 ---
 
-## Slicing into Array\<T\>
+### Slicing into Array\<T\>
 
 A `FixedArray` can be sliced into a dynamic `Array<T>`. The slice is a copy:
 
@@ -643,7 +755,7 @@ let partial: Array<Float32> = buf.slice(1..3)  // elements at index 1 and 2
 
 ---
 
-## Unsafe Raw Pointer Access
+### Unsafe Raw Pointer Access
 
 A `RawPtr<T>` to the underlying buffer can be obtained inside an `unsafe` block:
 

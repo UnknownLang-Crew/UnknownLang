@@ -1,0 +1,12 @@
+[package]
+name = "unknownlang"
+authors = ["UnknownLang Foundation", "PaoPao"]
+version = "0.0.1"
+edition = "2024"
+resolver = "2"
+
+[features]
+derive = []
+
+[dependencies]
+clap = "4.6.1"

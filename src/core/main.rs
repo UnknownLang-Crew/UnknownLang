@@ -7,8 +7,41 @@ use crate::unknown::parser::Parser;
 
 use rusty_repl::{CleanPrompt, Color, DefaultPromptSegment, KeywordStyle, Repl, ReplConfig};
 
+pub fn run(source: String) {
+    let interpreter = Rc::new(RefCell::new(Interpreter::new()));
+    let env = Rc::new(RefCell::new(Env::new()));
+
+    execute(&source, interpreter, env);
+}
+
+fn execute(source: &str, interpreter: Rc<RefCell<Interpreter>>, env: Rc<RefCell<Env>>) {
+    // lexer
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.lex_all();
+
+    // parser
+    let mut parser = Parser::new(tokens);
+    let ast = match parser.parse() {
+        Ok(ast) => ast,
+        Err(err) => {
+            println!("Error: {}", err);
+            return;
+        }
+    };
+
+    // eval
+    for expr in ast {
+        let result = interpreter.borrow_mut().eval(&expr, &mut env.borrow_mut());
+
+        match result {
+            Ok(val) => println!("{}", val),
+            Err(err) => println!("Error: {}", err),
+        }
+    }
+}
+
 pub fn repl_loop() {
-    // shared state (IMPORTANT)
+    // shared state
     let interpreter = Rc::new(RefCell::new(Interpreter::new()));
     let env = Rc::new(RefCell::new(Env::new()));
 
@@ -18,31 +51,13 @@ pub fn repl_loop() {
     let run = move |input: String| -> bool {
         let input = input.trim();
 
-        // exit
         match input {
             "exit" | "quit" | "q" | "e" => return true,
             "" => return false,
             _ => {}
         }
 
-        // lexer → parser
-        let mut lexer = Lexer::new(input);
-        let tokens = lexer.lex_all();
-
-        let mut parser = Parser::new(tokens);
-        let ast = parser.parse();
-
-        // execute safely
-        for expr in ast {
-            let result = interpreter_ref
-                .borrow_mut()
-                .eval(&expr, &mut env_ref.borrow_mut());
-
-            match result {
-                Ok(val) => println!("{}", val),
-                Err(err) => println!("Error: {}", err),
-            }
-        }
+        execute(input, interpreter_ref.clone(), env_ref.clone());
 
         false
     };

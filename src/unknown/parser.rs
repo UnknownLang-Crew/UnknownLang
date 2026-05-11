@@ -32,22 +32,22 @@ impl Parser {
     // Entry point
     // -------------------------
 
-    pub fn parse(&mut self) -> Vec<Expr> {
+    pub fn parse(&mut self) -> Result<Vec<Expr>, String> {
         let mut exprs = Vec::new();
 
         while !self.is_at_end() {
-            exprs.push(self.parse_expression(0));
+            exprs.push(self.parse_expression(0)?);
         }
 
-        exprs
+        Ok(exprs)
     }
 
     // -------------------------
     // Pratt parser core
     // -------------------------
 
-    fn parse_expression(&mut self, min_prec: u8) -> Expr {
-        let mut left = self.parse_prefix();
+    fn parse_expression(&mut self, min_prec: u8) -> Result<Expr, String> {
+        let mut left = self.parse_prefix()?;
 
         while !self.is_at_end() {
             let prec = match self.infix_precedence() {
@@ -59,29 +59,30 @@ impl Parser {
                 break;
             }
 
-            left = self.parse_infix(left, prec);
+            left = self.parse_infix(left, prec)?;
         }
 
-        left
+        Ok(left)
     }
 
     // -------------------------
     // Prefix (nud)
     // -------------------------
 
-    fn parse_prefix(&mut self) -> Expr {
+    fn parse_prefix(&mut self) -> Result<Expr, String> {
         let token = self.advance().clone();
 
-        match token.kind {
+        let expr = match token.kind {
             TokenKind::Integer(value) => Expr::integer(value, token.span),
             TokenKind::Float(value) => Expr::float(value, token.span),
+            TokenKind::String(value) => Expr::string(value, token.span),
 
             TokenKind::Identifier(name) => Expr::identifier(name, token.span),
 
             TokenKind::Let => {
-                let name = self.expect_identifier();
-                self.expect(TokenKind::Equal);
-                let value = self.parse_expression(0);
+                let name = self.expect_identifier()?;
+                self.expect(TokenKind::Equal)?;
+                let value = self.parse_expression(0)?;
                 let span = Span::merge(token.span, value.span);
 
                 Expr {
@@ -94,54 +95,56 @@ impl Parser {
             }
 
             TokenKind::Minus => {
-                let rhs = self.parse_expression(100);
+                let rhs = self.parse_expression(100)?;
                 Expr::unary(crate::unknown::ast::UnaryOp::Negate, rhs, token.span)
             }
 
             TokenKind::Bang => {
-                let rhs = self.parse_expression(100);
+                let rhs = self.parse_expression(100)?;
                 Expr::unary(crate::unknown::ast::UnaryOp::LogicalNot, rhs, token.span)
             }
 
             TokenKind::Tilde => {
-                let rhs = self.parse_expression(100);
+                let rhs = self.parse_expression(100)?;
                 Expr::unary(crate::unknown::ast::UnaryOp::BitwiseNot, rhs, token.span)
             }
 
             TokenKind::LeftParen => {
-                let expr = self.parse_expression(0);
-                self.expect(TokenKind::RightParen);
+                let expr = self.parse_expression(0)?;
+                self.expect(TokenKind::RightParen)?;
                 expr
             }
 
-            _ => panic!("Unexpected token in prefix position: {:?}", token.kind),
-        }
+            _ => return Err(format!("Unexpected token: {:?}", token.kind)),
+        };
+
+        Ok(expr)
     }
 
     // -------------------------
     // Infix (led)
     // -------------------------
 
-    fn parse_infix(&mut self, left: Expr, prec: u8) -> Expr {
+    fn parse_infix(&mut self, left: Expr, prec: u8) -> Result<Expr, String> {
         let token = self.advance().clone();
 
         if matches!(token.kind, TokenKind::Equal) {
-            let right = self.parse_expression(prec);
+            let right = self.parse_expression(prec)?;
             let span = Span::merge(left.span, right.span);
 
             return match left.kind {
-                ExprKind::Identifier(name) => Expr {
+                ExprKind::Identifier(name) => Ok(Expr {
                     kind: ExprKind::Assign {
                         name,
                         value: Box::new(right),
                     },
                     span,
-                },
-                _ => panic!("Invalid assignment target"),
+                }),
+                _ => Err("Invalid assignment target".to_string()),
             };
         }
 
-        let right = self.parse_expression(prec + 1);
+        let right = self.parse_expression(prec + 1)?;
 
         let op = match token.kind {
             TokenKind::Plus => crate::unknown::ast::BinaryOp::Plus,
@@ -172,15 +175,15 @@ impl Parser {
             TokenKind::DotDot => crate::unknown::ast::BinaryOp::RangeExclusive,
             TokenKind::DotDotEqual => crate::unknown::ast::BinaryOp::RangeInclusive,
 
-            _ => panic!("Unexpected infix operator: {:?}", token.kind),
+            _ => return Err(format!("Unexpected infix operator: {:?}", token.kind)),
         };
 
-        Expr::binary(
+        Ok(Expr::binary(
             left.clone(),
             op,
             right.clone(),
             Span::merge(left.span, right.span),
-        )
+        ))
     }
 
     // -------------------------
@@ -224,18 +227,47 @@ impl Parser {
     // Helpers
     // -------------------------
 
-    fn expect(&mut self, expected: TokenKind) {
+    fn expect(&mut self, expected: TokenKind) -> Result<(), String> {
         let tok = self.advance();
         if std::mem::discriminant(&tok.kind) != std::mem::discriminant(&expected) {
-            panic!("Expected {:?}, got {:?}", expected, tok.kind);
+            return Err(format!("Expected {:?}, got {:?}", expected, tok.kind));
         }
+
+        Ok(())
     }
 
-    fn expect_identifier(&mut self) -> String {
+    fn expect_identifier(&mut self) -> Result<String, String> {
         let tok = self.advance();
         match tok.kind {
-            TokenKind::Identifier(name) => name,
-            _ => panic!("Expected identifier, got {:?}", tok.kind),
+            TokenKind::Identifier(name) => Ok(name),
+            _ => Err(format!("Expected identifier, got {:?}", tok.kind)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::unknown::ast::ExprKind;
+    use crate::unknown::lexer::Lexer;
+
+    use super::Parser;
+
+    #[test]
+    fn parses_string_literal() {
+        let mut lexer = Lexer::new("\"hello\"");
+        let mut parser = Parser::new(lexer.lex_all());
+        let ast = parser.parse().unwrap();
+
+        assert_eq!(ast.len(), 1);
+        assert_eq!(ast[0].kind, ExprKind::String("hello".to_string()));
+    }
+
+    #[test]
+    fn returns_error_for_incomplete_let() {
+        let mut lexer = Lexer::new("let hi");
+        let mut parser = Parser::new(lexer.lex_all());
+        let err = parser.parse().unwrap_err();
+
+        assert_eq!(err, "Expected Equal, got EOF");
     }
 }

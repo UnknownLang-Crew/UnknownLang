@@ -7,6 +7,7 @@ use crate::unknown::ast::{BinaryOp, Expr, ExprKind, UnaryOp};
 pub enum Value {
     Integer(i64),
     Float(f64),
+    String(String),
     Boolean(bool),
 }
 
@@ -15,14 +16,16 @@ impl Value {
         match self {
             Self::Integer(value) => Ok(*value as f64),
             Self::Float(value) => Ok(*value),
-            Self::Boolean(_) => Err("Expected number".to_string()),
+            Self::String(_) | Self::Boolean(_) => Err("Expected number".to_string()),
         }
     }
 
     fn as_integer(&self) -> Result<i64, String> {
         match self {
             Self::Integer(value) => Ok(*value),
-            Self::Float(_) | Self::Boolean(_) => Err("Expected integer".to_string()),
+            Self::String(_) | Self::Float(_) | Self::Boolean(_) => {
+                Err("Expected integer".to_string())
+            }
         }
     }
 
@@ -30,14 +33,17 @@ impl Value {
         match self {
             Self::Integer(value) => *value != 0,
             Self::Float(value) => *value != 0.0,
+            Self::String(value) => !value.is_empty(),
             Self::Boolean(value) => *value,
         }
     }
 
-    fn numbers_equal(&self, other: &Self) -> Result<bool, String> {
+    fn equals(&self, other: &Self) -> Result<bool, String> {
         match (self, other) {
             (Self::Boolean(left), Self::Boolean(right)) => Ok(left == right),
+            (Self::String(left), Self::String(right)) => Ok(left == right),
             (Self::Boolean(_), _) | (_, Self::Boolean(_)) => Ok(false),
+            (Self::String(_), _) | (_, Self::String(_)) => Ok(false),
             _ => Ok(self.as_number()? == other.as_number()?),
         }
     }
@@ -47,6 +53,7 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Integer(value) => write!(f, "{}", value),
+            Self::String(value) => write!(f, "{}", value),
             Self::Float(value) => write!(f, "{}", value),
             Self::Boolean(value) => write!(f, "{}", value),
         }
@@ -125,6 +132,7 @@ impl Interpreter {
         match &expr.kind {
             ExprKind::Integer(v) => Ok(Value::Integer(*v)),
             ExprKind::Float(v) => Ok(Value::Float(*v)),
+            ExprKind::String(v) => Ok(Value::String(v.clone())),
 
             ExprKind::Identifier(name) => env
                 .get(name)
@@ -153,6 +161,7 @@ impl Interpreter {
                     UnaryOp::Negate => match v {
                         Value::Integer(value) => Value::Integer(-value),
                         Value::Float(value) => Value::Float(-value),
+                        Value::String(_) => return Err("Expected String as Number".to_string()),
                         Value::Boolean(_) => return Err("Expected number".to_string()),
                     },
                     UnaryOp::LogicalNot => Value::Boolean(!v.is_truthy()),
@@ -175,6 +184,9 @@ impl Interpreter {
                         (Value::Integer(left), Value::Integer(right)) => {
                             Value::Integer(left + right)
                         }
+                        (Value::String(left), Value::String(right)) => {
+                            Value::String(format!("{}{}", left, right))
+                        }
                         _ => Value::Float(l.as_number()? + r.as_number()?),
                     },
                     BinaryOp::Subtract => match (&l, &r) {
@@ -192,8 +204,8 @@ impl Interpreter {
                     BinaryOp::Divide => Value::Float(l.as_number()? / r.as_number()?),
                     BinaryOp::Modulo => Value::Integer(l.as_integer()? % r.as_integer()?),
 
-                    BinaryOp::Equal => Value::Boolean(l.numbers_equal(&r)?),
-                    BinaryOp::NotEqual => Value::Boolean(!l.numbers_equal(&r)?),
+                    BinaryOp::Equal => Value::Boolean(l.equals(&r)?),
+                    BinaryOp::NotEqual => Value::Boolean(!l.equals(&r)?),
                     BinaryOp::Less => Value::Boolean(l.as_number()? < r.as_number()?),
                     BinaryOp::LessEqual => Value::Boolean(l.as_number()? <= r.as_number()?),
                     BinaryOp::Greater => Value::Boolean(l.as_number()? > r.as_number()?),
@@ -268,5 +280,51 @@ mod tests {
             interpreter.eval(&expr, &mut env).unwrap().to_string(),
             "0.30000000000000004"
         );
+    }
+
+    #[test]
+    fn string_literals_evaluate_to_strings() {
+        let expr = Expr::string("hello".to_string(), Span::default());
+
+        let mut interpreter = Interpreter::new();
+        let mut env = Env::new();
+
+        assert_eq!(
+            interpreter.eval(&expr, &mut env),
+            Ok(Value::String("hello".to_string()))
+        );
+    }
+
+    #[test]
+    fn plus_concatenates_strings() {
+        let expr = Expr::binary(
+            Expr::string("hello ".to_string(), Span::default()),
+            BinaryOp::Plus,
+            Expr::string("world".to_string(), Span::default()),
+            Span::default(),
+        );
+
+        let mut interpreter = Interpreter::new();
+        let mut env = Env::new();
+
+        assert_eq!(
+            interpreter.eval(&expr, &mut env),
+            Ok(Value::String("hello world".to_string()))
+        );
+    }
+
+    #[test]
+    fn strings_compare_by_value() {
+        let expr = Expr::binary(
+            Expr::string("hello".to_string(), Span::default()),
+            BinaryOp::Equal,
+            Expr::string("hello".to_string(), Span::default()),
+            Span::default(),
+        );
+
+        let mut interpreter = Interpreter::new();
+        let mut env = Env::new();
+
+        assert_eq!(interpreter.eval(&expr, &mut env), Ok(Value::Boolean(true)));
     }
 }

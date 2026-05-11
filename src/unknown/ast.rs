@@ -44,6 +44,13 @@ impl Expr {
         }
     }
 
+    pub fn string(value: String, span: Span) -> Self {
+        Self {
+            kind: ExprKind::String(value),
+            span,
+        }
+    }
+
     pub fn identifier(name: impl Into<String>, span: Span) -> Self {
         Self {
             kind: ExprKind::Identifier(name.into()),
@@ -84,6 +91,7 @@ impl Expr {
 pub enum ExprKind {
     Integer(i64),
     Float(f64),
+    String(String),
     Identifier(String),
 
     Grouping(Box<Expr>),

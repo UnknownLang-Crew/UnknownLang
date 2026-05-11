@@ -17,6 +17,7 @@ impl Token {
 pub enum TokenKind {
     Integer(i64),
     Float(f64),
+    String(String),
     Identifier(String),
 
     Let,
@@ -134,6 +135,10 @@ impl<'a> Lexer<'a> {
         // Identifiers
         if ch.is_ascii_alphabetic() || ch == '_' {
             return self.lex_identifier();
+        }
+
+        if ch == '"' {
+            return self.lex_string();
         }
 
         self.advance();
@@ -255,6 +260,42 @@ impl<'a> Lexer<'a> {
         Token::new(TokenKind::Integer(value), Span::new(start, self.position))
     }
 
+    fn lex_string(&mut self) -> Token {
+        let start = self.position;
+        self.advance();
+
+        let mut value = String::new();
+
+        while let Some(ch) = self.peek() {
+            if ch == '"' {
+                self.advance();
+                return Token::new(TokenKind::String(value), Span::new(start, self.position));
+            }
+
+            if ch == '\\' {
+                self.advance();
+
+                let escaped = match self.advance() {
+                    Some('"') => '"',
+                    Some('\\') => '\\',
+                    Some('n') => '\n',
+                    Some('r') => '\r',
+                    Some('t') => '\t',
+                    Some(other) => other,
+                    None => break,
+                };
+
+                value.push(escaped);
+                continue;
+            }
+
+            value.push(ch);
+            self.advance();
+        }
+
+        Token::new(TokenKind::String(value), Span::new(start, self.position))
+    }
+
     fn lex_identifier(&mut self) -> Token {
         let start = self.position;
 
@@ -270,5 +311,29 @@ impl<'a> Lexer<'a> {
         };
 
         Token::new(kind, Span::new(start, self.position))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Lexer, TokenKind};
+
+    #[test]
+    fn lexes_string_literal() {
+        let mut lexer = Lexer::new("\"hello\"");
+        let tokens = lexer.lex_all();
+
+        assert_eq!(tokens[0].kind, TokenKind::String("hello".to_string()));
+    }
+
+    #[test]
+    fn lexes_string_escapes() {
+        let mut lexer = Lexer::new("\"hello\\n\\\"there\\\"\"");
+        let tokens = lexer.lex_all();
+
+        assert_eq!(
+            tokens[0].kind,
+            TokenKind::String("hello\n\"there\"".to_string())
+        );
     }
 }

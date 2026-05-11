@@ -76,8 +76,12 @@ impl Parser {
             TokenKind::Integer(value) => Expr::integer(value, token.span),
             TokenKind::Float(value) => Expr::float(value, token.span),
             TokenKind::String(value) => Expr::string(value, token.span),
+            TokenKind::True => Expr::boolean(true, token.span),
+            TokenKind::False => Expr::boolean(false, token.span),
 
             TokenKind::Identifier(name) => Expr::identifier(name, token.span),
+
+            TokenKind::If => self.parse_if_expression(token.span)?,
 
             TokenKind::Let => {
                 let name = self.expect_identifier()?;
@@ -119,6 +123,26 @@ impl Parser {
         };
 
         Ok(expr)
+    }
+
+    fn parse_if_expression(&mut self, if_span: Span) -> Result<Expr, String> {
+        self.expect(TokenKind::LeftParen)?;
+        let condition = self.parse_expression(0)?;
+        self.expect(TokenKind::RightParen)?;
+
+        let then_branch = self.parse_expression(0)?;
+        self.expect(TokenKind::Else)?;
+        let else_branch = self.parse_expression(0)?;
+        let span = Span::merge(if_span, else_branch.span);
+
+        Ok(Expr {
+            kind: ExprKind::If {
+                condition: Box::new(condition),
+                then_branch: Box::new(then_branch),
+                else_branch: Box::new(else_branch),
+            },
+            span,
+        })
     }
 
     // -------------------------
@@ -269,5 +293,15 @@ mod tests {
         let err = parser.parse().unwrap_err();
 
         assert_eq!(err, "Expected Equal, got EOF");
+    }
+
+    #[test]
+    fn parses_if_expression() {
+        let mut lexer = Lexer::new("if (1 < 2) \"Pass\" else \"Fail\"");
+        let mut parser = Parser::new(lexer.lex_all());
+        let ast = parser.parse().unwrap();
+
+        assert_eq!(ast.len(), 1);
+        assert!(matches!(ast[0].kind, ExprKind::If { .. }));
     }
 }

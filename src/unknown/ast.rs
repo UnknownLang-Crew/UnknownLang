@@ -51,6 +51,13 @@ impl Expr {
         }
     }
 
+    pub fn boolean(value: bool, span: Span) -> Self {
+        Self {
+            kind: ExprKind::Boolean(value),
+            span,
+        }
+    }
+
     pub fn identifier(name: impl Into<String>, span: Span) -> Self {
         Self {
             kind: ExprKind::Identifier(name.into()),
@@ -92,6 +99,7 @@ pub enum ExprKind {
     Integer(i64),
     Float(f64),
     String(String),
+    Boolean(bool),
     Identifier(String),
 
     Grouping(Box<Expr>),
@@ -104,6 +112,12 @@ pub enum ExprKind {
     Assign {
         name: String,
         value: Box<Expr>,
+    },
+
+    If {
+        condition: Box<Expr>,
+        then_branch: Box<Expr>,
+        else_branch: Box<Expr>,
     },
 
     Unary {

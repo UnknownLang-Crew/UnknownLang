@@ -133,6 +133,7 @@ impl Interpreter {
             ExprKind::Integer(v) => Ok(Value::Integer(*v)),
             ExprKind::Float(v) => Ok(Value::Float(*v)),
             ExprKind::String(v) => Ok(Value::String(v.clone())),
+            ExprKind::Boolean(v) => Ok(Value::Boolean(*v)),
 
             ExprKind::Identifier(name) => env
                 .get(name)
@@ -152,6 +153,18 @@ impl Interpreter {
                 let val = self.eval(value, env)?;
                 env.assign(name, val.clone())?;
                 Ok(val)
+            }
+
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                if self.eval(condition, env)?.is_truthy() {
+                    self.eval(then_branch, env)
+                } else {
+                    self.eval(else_branch, env)
+                }
             }
 
             ExprKind::Unary { operator, operand } => {
@@ -326,5 +339,25 @@ mod tests {
         let mut env = Env::new();
 
         assert_eq!(interpreter.eval(&expr, &mut env), Ok(Value::Boolean(true)));
+    }
+
+    #[test]
+    fn if_expression_evaluates_matching_branch() {
+        let expr = Expr {
+            kind: crate::unknown::ast::ExprKind::If {
+                condition: Box::new(Expr::boolean(true, Span::default())),
+                then_branch: Box::new(Expr::string("yes".to_string(), Span::default())),
+                else_branch: Box::new(Expr::string("no".to_string(), Span::default())),
+            },
+            span: Span::default(),
+        };
+
+        let mut interpreter = Interpreter::new();
+        let mut env = Env::new();
+
+        assert_eq!(
+            interpreter.eval(&expr, &mut env),
+            Ok(Value::String("yes".to_string()))
+        );
     }
 }

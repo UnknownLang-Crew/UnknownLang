@@ -21,6 +21,10 @@ pub enum TokenKind {
     Identifier(String),
 
     Let,
+    If,
+    Else,
+    True,
+    False,
 
     Plus,
     Minus,
@@ -307,6 +311,10 @@ impl<'a> Lexer<'a> {
 
         let kind = match text.as_str() {
             "let" => TokenKind::Let,
+            "if" => TokenKind::If,
+            "else" => TokenKind::Else,
+            "true" => TokenKind::True,
+            "false" => TokenKind::False,
             _ => TokenKind::Identifier(text),
         };
 
@@ -335,5 +343,16 @@ mod tests {
             tokens[0].kind,
             TokenKind::String("hello\n\"there\"".to_string())
         );
+    }
+
+    #[test]
+    fn lexes_if_expression_keywords() {
+        let mut lexer = Lexer::new("if true else false");
+        let tokens = lexer.lex_all();
+
+        assert_eq!(tokens[0].kind, TokenKind::If);
+        assert_eq!(tokens[1].kind, TokenKind::True);
+        assert_eq!(tokens[2].kind, TokenKind::Else);
+        assert_eq!(tokens[3].kind, TokenKind::False);
     }
 }

@@ -54,13 +54,14 @@ jobs:
       - name: Zip artifact (Unix)
         if: runner.os != 'Windows'
         shell: bash
-        run: |
-          zip -j "${{ matrix.artifact-name }}.zip" "$(cat executable_path.txt)"
-
-      - name: Zip artifact (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
         run: zip -j "${{ matrix.artifact-name }}.zip" "$(cat executable_path.txt)"
+
+      - name: Zip artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $exe = Get-Content executable_path.txt
+          Compress-Archive -Path $exe -DestinationPath "${{ matrix.artifact-name }}.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

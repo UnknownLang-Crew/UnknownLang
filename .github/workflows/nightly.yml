@@ -98,5 +98,5 @@ jobs:
 
           files: |
             artifacts/unknownlang-linux/unknownlang-linux
-            artifacts/unknownlang-windows/unknownlang-windows
+            artifacts/unknownlang-windows/unknownlang-windows.exe
             artifacts/unknownlang-macos/unknownlang-macos

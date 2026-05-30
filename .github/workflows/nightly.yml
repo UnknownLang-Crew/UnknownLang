@@ -94,6 +94,4 @@ jobs:
             It is not recommended for production use.
             Please use this version only for testing and development.
           files: |
-            artifacts/unknownlang-linux/unknownlang-linux.zip
-            artifacts/unknownlang-windows/unknownlang-windows.zip
-            artifacts/unknownlang-macos/unknownlang-macos.zip
+            artifacts/**/*.zip

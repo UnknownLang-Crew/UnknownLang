@@ -51,17 +51,18 @@ jobs:
             | tail -n 1 \
             | sed 's/\\/\//g' > executable_path.txt
 
-      - name: Zip artifact
+      - name: Zip artifact (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
-          # -j junks the path, storing only the filename in the zip
           zip -j "${{ matrix.artifact-name }}.zip" "$(cat executable_path.txt)"
 
-      - name: Upload artifact  # ← duplicate removed
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact-name }}
-          path: ${{ matrix.artifact-name }}.zip  # ← removed incorrect dist/ prefix
+      - name: Zip artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $exe = Get-Content executable_path.txt
+          Compress-Archive -Path $exe -DestinationPath "${{ matrix.artifact-name }}.zip"
 
   create-nightly-release:
     name: Nightly Release

@@ -1,3 +1,4 @@
+use core::str;
 use std::cell::RefCell;
 use std::rc::Rc;
 

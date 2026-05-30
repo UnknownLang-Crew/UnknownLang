@@ -1,7 +1,27 @@
+#![allow(dead_code)]
 use std::collections::HashMap;
 use std::fmt;
 
 use crate::unknown::ast::{BinaryOp, Expr, ExprKind, UnaryOp};
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Array<T> {
+    values: Vec<T>,
+}
+
+impl<T> Array<T> {
+    pub fn new(values: Vec<T>) -> Self {
+        Self { values }
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.values
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
@@ -9,6 +29,10 @@ pub enum Value {
     Float(f64),
     String(String),
     Boolean(bool),
+    FixedArray(Vec<Value>),
+    Array(Array<Value>),
+    Object(HashMap<String, Value>),
+    Tuple(Vec<Value>),
 }
 
 impl Value {
@@ -16,16 +40,25 @@ impl Value {
         match self {
             Self::Integer(value) => Ok(*value as f64),
             Self::Float(value) => Ok(*value),
-            Self::String(_) | Self::Boolean(_) => Err("Expected number".to_string()),
+            Self::String(_)
+            | Self::Boolean(_)
+            | Self::FixedArray(_)
+            | Self::Array(_)
+            | Self::Object(_)
+            | Self::Tuple(_) => Err("Expected number".to_string()),
         }
     }
 
     fn as_integer(&self) -> Result<i64, String> {
         match self {
             Self::Integer(value) => Ok(*value),
-            Self::String(_) | Self::Float(_) | Self::Boolean(_) => {
-                Err("Expected integer".to_string())
-            }
+            Self::String(_)
+            | Self::Float(_)
+            | Self::Boolean(_)
+            | Self::FixedArray(_)
+            | Self::Array(_)
+            | Self::Object(_)
+            | Self::Tuple(_) => Err("Expected integer".to_string()),
         }
     }
 
@@ -35,6 +68,10 @@ impl Value {
             Self::Float(value) => *value != 0.0,
             Self::String(value) => !value.is_empty(),
             Self::Boolean(value) => *value,
+            Self::FixedArray(values) => !values.is_empty(),
+            Self::Array(values) => !values.is_empty(),
+            Self::Object(values) => !values.is_empty(),
+            Self::Tuple(values) => !values.is_empty(),
         }
     }
 
@@ -42,8 +79,16 @@ impl Value {
         match (self, other) {
             (Self::Boolean(left), Self::Boolean(right)) => Ok(left == right),
             (Self::String(left), Self::String(right)) => Ok(left == right),
+            (Self::FixedArray(left), Self::FixedArray(right)) => Ok(left == right),
+            (Self::Array(left), Self::Array(right)) => Ok(left == right),
+            (Self::Object(left), Self::Object(right)) => Ok(left == right),
+            (Self::Tuple(left), Self::Tuple(right)) => Ok(left == right),
             (Self::Boolean(_), _) | (_, Self::Boolean(_)) => Ok(false),
             (Self::String(_), _) | (_, Self::String(_)) => Ok(false),
+            (Self::FixedArray(_), _) | (_, Self::FixedArray(_)) => Ok(false),
+            (Self::Array(_), _) | (_, Self::Array(_)) => Ok(false),
+            (Self::Object(_), _) | (_, Self::Object(_)) => Ok(false),
+            (Self::Tuple(_), _) | (_, Self::Tuple(_)) => Ok(false),
             _ => Ok(self.as_number()? == other.as_number()?),
         }
     }
@@ -56,8 +101,31 @@ impl fmt::Display for Value {
             Self::String(value) => write!(f, "{}", value),
             Self::Float(value) => write!(f, "{}", value),
             Self::Boolean(value) => write!(f, "{}", value),
+            Self::FixedArray(values) => write!(f, "[{}]", format_values(values)),
+            Self::Array(values) => write!(f, "[{}]", format_values(values.as_slice())),
+            Self::Object(values) => write!(f, "{{{}}}", format_object(values)),
+            Self::Tuple(values) => write!(f, "({})", format_values(values)),
         }
     }
+}
+
+fn format_values(values: &[Value]) -> String {
+    values
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_object(values: &HashMap<String, Value>) -> String {
+    let mut entries = values.iter().collect::<Vec<_>>();
+    entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+
+    entries
+        .into_iter()
+        .map(|(key, value)| format!("{}: {}", key, value))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// ----------------------
@@ -175,7 +243,11 @@ impl Interpreter {
                         Value::Integer(value) => Value::Integer(-value),
                         Value::Float(value) => Value::Float(-value),
                         Value::String(_) => return Err("Expected String as Number".to_string()),
-                        Value::Boolean(_) => return Err("Expected number".to_string()),
+                        Value::Boolean(_)
+                        | Value::FixedArray(_)
+                        | Value::Array(_)
+                        | Value::Object(_)
+                        | Value::Tuple(_) => return Err("Expected number".to_string()),
                     },
                     UnaryOp::LogicalNot => Value::Boolean(!v.is_truthy()),
                     UnaryOp::BitwiseNot => Value::Integer(!v.as_integer()?),
@@ -358,6 +430,41 @@ mod tests {
         assert_eq!(
             interpreter.eval(&expr, &mut env),
             Ok(Value::String("yes".to_string()))
+        );
+    }
+
+    #[test]
+    fn collection_values_display_readably() {
+        let mut object = std::collections::HashMap::new();
+        object.insert("name".to_string(), Value::String("Nova".to_string()));
+        object.insert("score".to_string(), Value::Integer(7));
+
+        assert_eq!(
+            Value::FixedArray(vec![Value::Integer(1), Value::Integer(2)]).to_string(),
+            "[1, 2]"
+        );
+        assert_eq!(
+            Value::Array(super::Array::new(vec![Value::Boolean(true)])).to_string(),
+            "[true]"
+        );
+        assert_eq!(
+            Value::Tuple(vec![Value::String("x".to_string()), Value::Integer(3)]).to_string(),
+            "(x, 3)"
+        );
+        assert_eq!(Value::Object(object).to_string(), "{name: Nova, score: 7}");
+    }
+
+    #[test]
+    fn collection_values_compare_by_variant_and_contents() {
+        assert_eq!(
+            Value::FixedArray(vec![Value::Integer(1)])
+                .equals(&Value::FixedArray(vec![Value::Integer(1)])),
+            Ok(true)
+        );
+        assert_eq!(
+            Value::FixedArray(vec![Value::Integer(1)])
+                .equals(&Value::Tuple(vec![Value::Integer(1)])),
+            Ok(false)
         );
     }
 }

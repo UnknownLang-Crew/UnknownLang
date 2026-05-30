@@ -21,6 +21,9 @@ pub enum TokenKind {
     Identifier(String),
 
     Let,
+    // Mut, // 1B
+    // Const, // CT
+
     If,
     Else,
     True,
@@ -59,6 +62,9 @@ pub enum TokenKind {
 
     LeftParen,
     RightParen,
+
+    LeftBrace,
+    RightBrace,
 
     EOF,
 }
@@ -218,6 +224,9 @@ impl<'a> Lexer<'a> {
 
             '(' => TokenKind::LeftParen,
             ')' => TokenKind::RightParen,
+
+            '{' => TokenKind::LeftBrace,
+            '}' => TokenKind::RightBrace,
 
             '.' => {
                 if self.peek() == Some('.') {

@@ -144,19 +144,16 @@ pub enum UnaryOp {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum BinaryOp {
-    //
     // Arithmetic
-    //
     Plus,     // +
     Subtract, // -
     Multiply, // *
     Divide,   // /
     Modulo,   // %
 
-    //
     // Bitwise
-    //
     BitwiseAnd, // &
     BitwiseOr,  // |
     BitwiseXor, // ^
@@ -164,9 +161,7 @@ pub enum BinaryOp {
     LeftShift,  // <<
     RightShift, // >>
 
-    //
     // Comparison
-    //
     Equal,    // ==
     NotEqual, // !=
 
@@ -176,15 +171,11 @@ pub enum BinaryOp {
     Greater,      // >
     GreaterEqual, // >=
 
-    //
     // Logical
-    //
     LogicalAnd, // &&
     LogicalOr,  // ||
 
-    //
     // Range
-    //
     RangeExclusive, // ..
     RangeInclusive, // ..=
 }

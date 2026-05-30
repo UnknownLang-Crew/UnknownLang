@@ -6,6 +6,7 @@ A statically typed compiled programming language focused on:
 - safety
 - readability
 - explicit behavior
+- lightweight
 
 UnknownLang is inspired by:
 
@@ -132,4 +133,4 @@ unsafe {
 
 ## License
 
-yes, [MIT License](./LICENSE.md)
+yes, [Apache License](./LICENSE.md)

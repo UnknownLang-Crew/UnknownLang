@@ -1,6 +1,6 @@
 [package]
 name = "unknownlang"
-authors = ["UnknownLang Foundation", "PaoPao"]
+authors = ["UnknownLang Crew", "PaoPao"]
 version = "0.0.1"
 edition = "2024"
 resolver = "2"
@@ -11,3 +11,9 @@ derive = []
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
 rusty_repl = "0.3.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

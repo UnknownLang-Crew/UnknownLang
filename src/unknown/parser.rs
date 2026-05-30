@@ -28,9 +28,6 @@ impl Parser {
         matches!(self.peek().kind, TokenKind::EOF)
     }
 
-    // -------------------------
-    // Entry point
-    // -------------------------
 
     pub fn parse(&mut self) -> Result<Vec<Expr>, String> {
         let mut exprs = Vec::new();
@@ -42,9 +39,6 @@ impl Parser {
         Ok(exprs)
     }
 
-    // -------------------------
-    // Pratt parser core
-    // -------------------------
 
     fn parse_expression(&mut self, min_prec: u8) -> Result<Expr, String> {
         let mut left = self.parse_prefix()?;
@@ -65,9 +59,7 @@ impl Parser {
         Ok(left)
     }
 
-    // -------------------------
-    // Prefix (nud)
-    // -------------------------
+
 
     fn parse_prefix(&mut self) -> Result<Expr, String> {
         let token = self.advance().clone();
@@ -145,9 +137,7 @@ impl Parser {
         })
     }
 
-    // -------------------------
-    // Infix (led)
-    // -------------------------
+
 
     fn parse_infix(&mut self, left: Expr, prec: u8) -> Result<Expr, String> {
         let token = self.advance().clone();

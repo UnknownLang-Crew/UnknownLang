@@ -33,7 +33,7 @@ jobs:
 
           - os: windows-latest
             target: windows
-            artifact-name: unknownlang-windows.exe
+            artifact-name: unknownlang-windows
 
           - os: macos-latest
             target: macos
@@ -49,7 +49,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          cargo build --release --message-format=json -q | jq -r 'select(.reason=="compiler-artifact" and .executable != null) | .executable' | tail -n 1 > executable_path.txt
+          cargo build --release --message-format=json -q | jq -r 'select(.reason=="compiler-artifact" and .executable != null) | .executable' | tail -n 1 | sed 's/\\/\//g' > executable_path.txt
 
       - name: Prepare artifact
         shell: bash
@@ -97,5 +97,5 @@ jobs:
 
           files: |
             artifacts/unknownlang-linux/unknownlang-linux
-            artifacts/unknownlang-windows/unknownlang-windows.exe
+            artifacts/unknownlang-windows/unknownlang-windows
             artifacts/unknownlang-macos/unknownlang-macos

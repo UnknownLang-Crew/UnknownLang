@@ -30,17 +30,14 @@ jobs:
           - os: ubuntu-latest
             target: linux
             artifact-name: unknownlang-linux
-            binary-name: unknownlang
 
           - os: windows-latest
             target: windows
-            artifact-name: unknownlang-windows
-            binary-name: unknownlang.exe
+            artifact-name: unknownlang-windows.exe
 
           - os: macos-latest
             target: macos
             artifact-name: unknownlang-macos
-            binary-name: unknownlang
 
     steps:
       - name: Checkout
@@ -50,13 +47,15 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build
-        run: cargo build --release --verbose
+        shell: bash
+        run: |
+          cargo build --release --message-format=json -q | jq -r 'select(.reason=="compiler-artifact" and .executable != null) | .executable' | tail -n 1 > executable_path.txt
 
       - name: Prepare artifact
         shell: bash
         run: |
           mkdir -p dist
-          cp target/release/${{ matrix.binary-name }} dist/${{ matrix.artifact-name }}
+          cp "$(cat executable_path.txt)" "dist/${{ matrix.artifact-name }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

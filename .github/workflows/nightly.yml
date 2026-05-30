@@ -90,12 +90,11 @@ jobs:
           name: Development Build
 
           body: |
-            Nightly build of **Unknown Language**
+            This is a nightly build of **Unknown Language** for commit ${{ github.sha }} from ${{ github.ref_name }} branch.
 
-            Commit: ${{ github.sha }}
-            Branch: ${{ github.ref_name }}
-
-            This build may be unstable.
+            This is a development release of **Unknown Language**.
+            It is not recommended for production use.
+            Please use this version only for testing and development
 
           files: |
             artifacts/unknownlang-linux/unknownlang-linux

@@ -57,12 +57,18 @@ jobs:
         run: |
           zip -j "${{ matrix.artifact-name }}.zip" "$(cat executable_path.txt)"
 
-      - name: Zip artifact (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $exe = Get-Content executable_path.txt
-          Compress-Archive -Path $exe -DestinationPath "${{ matrix.artifact-name }}.zip"
+      - name: Zip artifact (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: zip -j "${{ matrix.artifact-name }}.zip" "$(cat executable_path.txt)"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifact-name }}.zip
+          if-no-files-found: error
+
 
   create-nightly-release:
     name: Nightly Release
@@ -72,7 +78,7 @@ jobs:
     permissions:
       contents: write
 
-    if: ${{ (github.event_name == 'push' || inputs.nightly) && !cancelled() }}
+    if: (github.event_name == 'push' || inputs.nightly) && !cancelled() && !failure()
 
     steps:
       - name: Download artifacts

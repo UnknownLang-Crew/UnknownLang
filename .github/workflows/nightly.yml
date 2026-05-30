@@ -2,9 +2,9 @@ name: Nightly Rust
 
 on:
   push:
-    branches: [ "dev" ]
+    branches: ["dev"]
   pull_request:
-    branches: [ "dev" ]
+    branches: ["dev"]
   workflow_dispatch:
     inputs:
       nightly:
@@ -79,6 +79,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+
+      - name: List downloaded artifacts
+        run: find artifacts/ -type f
 
       - name: Publish nightly
         uses: andelf/nightly-release@v1  # ← pin to a tag, not @main

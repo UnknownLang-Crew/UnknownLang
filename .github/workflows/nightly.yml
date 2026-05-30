@@ -51,17 +51,23 @@ jobs:
         run: |
           cargo build --release --message-format=json -q | jq -r 'select(.reason=="compiler-artifact" and .executable != null) | .executable' | tail -n 1 | sed 's/\\/\//g' > executable_path.txt
 
-      - name: Prepare artifact
+      - name: Zip artifact
         shell: bash
         run: |
-          mkdir -p dist
-          cp "$(cat executable_path.txt)" "dist/${{ matrix.artifact-name }}"
+          cd dist
+          zip "${{ matrix.artifact-name }}.zip" "${{ matrix.artifact-name }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
-          path: dist/${{ matrix.artifact-name }}
+          path: dist/${{ matrix.artifact-name }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: dist/${{ matrix.artifact-name }}.zip
 
   create-nightly-release:
     name: Nightly Release
@@ -96,6 +102,6 @@ jobs:
             Please use this version only for testing and development
 
           files: |
-            artifacts/unknownlang-linux/unknownlang-linux
-            artifacts/unknownlang-windows/unknownlang-windows
-            artifacts/unknownlang-macos/unknownlang-macos
+            artifacts/unknownlang-linux/unknownlang-linux.zip
+            artifacts/unknownlang-windows/unknownlang-windows.zip
+            artifacts/unknownlang-macos/unknownlang-macos.zip

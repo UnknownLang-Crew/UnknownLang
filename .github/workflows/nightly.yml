@@ -1,5 +1,4 @@
-
-name: Rust
+name: Nightly Rust
 
 on:
   push:
@@ -30,18 +29,18 @@ jobs:
         include:
           - os: ubuntu-latest
             target: linux
-            artifact-name: linuxBuild
-            binary-name: myapp
+            artifact-name: unknownlang-linux
+            binary-name: unknownlang
 
           - os: windows-latest
             target: windows
-            artifact-name: windowsBuild
-            binary-name: myapp.exe
+            artifact-name: unknownlang-windows
+            binary-name: unknownlang.exe
 
           - os: macos-latest
             target: macos
-            artifact-name: macBuild
-            binary-name: myapp
+            artifact-name: unknownlang-macos
+            binary-name: unknownlang
 
     steps:
       - name: Checkout
@@ -56,19 +55,14 @@ jobs:
       - name: Prepare artifact
         shell: bash
         run: |
-          mkdir dist
-
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            cp target/release/${{ matrix.binary-name }} dist/
-          else
-            cp target/release/${{ matrix.binary-name }} dist/
-          fi
+          mkdir -p dist
+          cp target/release/${{ matrix.binary-name }} dist/${{ matrix.artifact-name }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
-          path: dist/
+          path: dist/${{ matrix.artifact-name }}
 
   create-nightly-release:
     name: Nightly Release
@@ -86,14 +80,6 @@ jobs:
         with:
           path: artifacts
 
-      - name: Package builds
-        run: |
-          cd artifacts
-
-          zip -r ../linux.zip linuxBuild
-          zip -r ../windows.zip windowsBuild
-          zip -r ../mac.zip macBuild
-
       - name: Publish nightly
         uses: andelf/nightly-release@main
         env:
@@ -104,13 +90,14 @@ jobs:
           name: Development Build
 
           body: |
-            This is a nightly build of **Unknown Language** for commit ${{ github.sha }} from ${{ github.ref_name }} branch.
+            Nightly build of **Unknown Language**
 
-            This is a development release of **Unknown Language**.
-            It is not recommended for production use.
-            Please use this version only for testing and development
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref_name }}
+
+            This build may be unstable.
 
           files: |
-            linux.zip
-            windows.zip
-            mac.zip
+            artifacts/unknownlang-linux/unknownlang-linux
+            artifacts/unknownlang-windows/unknownlang-windows
+            artifacts/unknownlang-macos/unknownlang-macos

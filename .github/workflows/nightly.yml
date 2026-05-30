@@ -3,10 +3,8 @@ name: Nightly Rust
 on:
   push:
     branches: [ "dev" ]
-
   pull_request:
     branches: [ "dev" ]
-
   workflow_dispatch:
     inputs:
       nightly:
@@ -24,7 +22,6 @@ jobs:
 
     strategy:
       fail-fast: false
-
       matrix:
         include:
           - os: ubuntu-latest
@@ -49,25 +46,22 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          cargo build --release --message-format=json -q | jq -r 'select(.reason=="compiler-artifact" and .executable != null) | .executable' | tail -n 1 | sed 's/\\/\//g' > executable_path.txt
+          cargo build --release --message-format=json -q \
+            | jq -r 'select(.reason=="compiler-artifact" and .executable != null) | .executable' \
+            | tail -n 1 \
+            | sed 's/\\/\//g' > executable_path.txt
 
       - name: Zip artifact
         shell: bash
         run: |
-          cd dist
-          zip "${{ matrix.artifact-name }}.zip" "${{ matrix.artifact-name }}"
+          # -j junks the path, storing only the filename in the zip
+          zip -j "${{ matrix.artifact-name }}.zip" "$(cat executable_path.txt)"
 
-      - name: Upload artifact
+      - name: Upload artifact  # ← duplicate removed
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
-          path: dist/${{ matrix.artifact-name }}.zip
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact-name }}
-          path: dist/${{ matrix.artifact-name }}.zip
+          path: ${{ matrix.artifact-name }}.zip  # ← removed incorrect dist/ prefix
 
   create-nightly-release:
     name: Nightly Release
@@ -86,21 +80,18 @@ jobs:
           path: artifacts
 
       - name: Publish nightly
-        uses: andelf/nightly-release@main
+        uses: andelf/nightly-release@v1  # ← pin to a tag, not @main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
         with:
           tag_name: nightly
           name: Development Build
-
           body: |
             This is a nightly build of **Unknown Language** for commit ${{ github.sha }} from ${{ github.ref_name }} branch.
 
             This is a development release of **Unknown Language**.
             It is not recommended for production use.
-            Please use this version only for testing and development
-
+            Please use this version only for testing and development.
           files: |
             artifacts/unknownlang-linux/unknownlang-linux.zip
             artifacts/unknownlang-windows/unknownlang-windows.zip

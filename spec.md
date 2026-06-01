@@ -12,6 +12,16 @@ UnknownLang is a statically typed compiled language focused on:
 
 ---
 
+## Garbage Collector
+
+ARC (Automatic Reference Counting)
+Zero Garbage Collectors
+
+```unk
+weak mut observer = player   // Nullable<Player> — runtime can zero it
+unowned let parent = container   // fine — unowned never changes value
+```
+
 ## Variables
 
 ```unk id="vars001"

@@ -8,7 +8,6 @@ UnknownLang is a statically typed compiled language focused on:
 - simplicity
 - safety
 - readability
-- explicit behavior
 
 ---
 
